@@ -97,6 +97,7 @@ function App() {
         contract.off("NewPunch", onNewPunch);
       }
     };
+    // eslint-disable-next-line
   }, []);
 
   const doPunch = async () => {
@@ -111,7 +112,6 @@ function App() {
         let count = await contract.getTotalPunches();
         console.log("Retreived total punch count...", count.toNumber());
 
-        const gas = await contract.estimateGas
         const tx = await contract.punch(message);
 
         await tx.wait();
