@@ -1,4 +1,4 @@
-# 👊 Punch Portal
+# 👊 Punch Portal Interface
 
 ![Buildspace Web3 Project Logo](https://github.com/robotboy/punch-portal-interface/blob/d88150cd9af545120da858989d4c2f2710cb0ada/images/eth_course.png?raw=true)
 
