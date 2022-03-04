@@ -243,6 +243,10 @@ function App() {
             </button>
           ))}
 
+        {currentAccount && (
+          <div className="mt-2 text-sm font-semibold">Hi, {currentAccount}!</div>
+        )}
+
         <div className="flex flex-col mt-10 text-gray-700">
           <label className="p-1 text-gray-700">Send message</label>
           <input
