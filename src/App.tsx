@@ -7,6 +7,8 @@ import "./App.css";
 function App() {
   const contractABI = abi.abi;
   const contractAddress = "0x04b065b6B54Ef2171f36ceaE90E2689171514C17";
+  const network = "rinkeby";
+  const alchemyApiKey = "Oce04uIbf6YvqvvyqTQV3sc1BvFQs3BV";
 
   type Punch = {
     address: string;
@@ -18,6 +20,8 @@ function App() {
   const [punchCount, setPunchCount] = useState<number>(0);
   const [message, setMessage] = useState<string>("");
   const [allPunches, setAllPunches] = useState<Punch[]>([]);
+  const [haveMetaMask, setHaveMetaMask] = useState<boolean>(false);
+  const [chainId, setChainId] = useState<string>("");
 
   const checkIfWalletIsConnected = async () => {
     try {
@@ -25,6 +29,7 @@ function App() {
       if (!ethereum) {
         console.log("Make sure you have metamask!");
       } else {
+        setHaveMetaMask(true);
         console.log("We have the Ethereum object", ethereum);
 
         const accounts = await ethereum.request({ method: "eth_accounts" });
@@ -33,13 +38,13 @@ function App() {
           const account = accounts[0];
           console.log("Found an authorized account: ", account);
           setCurrentAccount(account);
+          chainChanged();
         } else {
           console.log("No authorized account found");
         }
-
-        getCount();
-        getAllPunches();
       }
+      getCount();
+      getAllPunches();
     } catch (error) {
       console.log(error);
     }
@@ -58,7 +63,6 @@ function App() {
         method: "eth_requestAccounts",
       });
 
-      console.log("Connected", accounts[0]);
       setCurrentAccount(accounts[0]);
     } catch (error) {
       console.log(error);
@@ -83,11 +87,14 @@ function App() {
     try {
       const { ethereum } = window as any;
       if (ethereum) {
+        setHaveMetaMask(true);
         const provider = new ethers.providers.Web3Provider(ethereum);
         const signer = provider.getSigner();
 
         contract = new ethers.Contract(contractAddress, contractABI, signer);
         contract.on("NewPunch", onNewPunch);
+
+        ethereum.on("chainChanged", chainChanged);
       }
     } catch (error) {
       console.log(error);
@@ -100,6 +107,22 @@ function App() {
     };
     // eslint-disable-next-line
   }, []);
+
+  const chainChanged = async () => {
+    try {
+      const { ethereum } = window as any;
+      if (ethereum) {
+        const chainId = await ethereum.request({ method: "eth_chainId" });
+        setChainId(chainId);
+      }
+    } catch (error) {
+      console.log("unable to determine the chaindId");
+    }
+  };
+
+  useEffect(() => {
+    console.log("chainId", chainId);
+  }, [chainId]);
 
   const doPunch = async () => {
     try {
@@ -135,23 +158,21 @@ function App() {
 
   const getCount = async () => {
     try {
-      const { ethereum } = window as any;
+      const provider = new ethers.providers.AlchemyProvider(
+        network,
+        alchemyApiKey
+      );
+      // const provider = new ethers.providers.Web3Provider(ethereum);
+      const contract = new ethers.Contract(
+        contractAddress,
+        contractABI,
+        provider
+      );
 
-      if (ethereum) {
-        const provider = new ethers.providers.Web3Provider(ethereum);
-        const contract = new ethers.Contract(
-          contractAddress,
-          contractABI,
-          provider
-        );
+      let count = await contract.getTotalPunches();
+      console.log("Retreived total punch count...", count.toNumber());
 
-        let count = await contract.getTotalPunches();
-        console.log("Retreived total punch count...", count.toNumber());
-
-        setPunchCount(count.toNumber());
-      } else {
-        console.log("Ethereum object doesn't exists");
-      }
+      setPunchCount(count.toNumber());
     } catch (error) {
       console.log("111111");
       console.log(error);
@@ -160,32 +181,29 @@ function App() {
 
   const getAllPunches = async () => {
     try {
-      const { ethereum } = window as any;
+      const provider = new ethers.providers.AlchemyProvider(
+        network,
+        alchemyApiKey
+      );
+      const contract = new ethers.Contract(
+        contractAddress,
+        contractABI,
+        provider
+      );
 
-      if (ethereum) {
-        const provider = new ethers.providers.Web3Provider(ethereum);
-        const contract = new ethers.Contract(
-          contractAddress,
-          contractABI,
-          provider
-        );
+      const allPunches = await contract.getAllPunches();
 
-        const allPunches = await contract.getAllPunches();
+      let punchesCleaned: Punch[] = [];
+      allPunches.forEach((x: any) => {
+        let curr: Punch = {
+          address: x.puncher,
+          timestamp: new Date(x.timestamp * 1000),
+          message: x.message,
+        };
+        punchesCleaned.push(curr);
+      });
 
-        let punchesCleaned: Punch[] = [];
-        allPunches.forEach((x: any) => {
-          let curr: Punch = {
-            address: x.puncher,
-            timestamp: new Date(x.timestamp * 1000),
-            message: x.message,
-          };
-          punchesCleaned.push(curr);
-        });
-
-        setAllPunches(punchesCleaned.reverse());
-      } else {
-        console.log("Ethereum object doesn't exists");
-      }
+      setAllPunches(punchesCleaned.reverse());
     } catch (error) {
       console.log(error);
     }
@@ -208,14 +226,23 @@ function App() {
             You might get lucky to receive ETH 😉
           </p>
         </div>
-        {!currentAccount && (
-          <button
-            className="p-2 mt-4 text-white bg-blue-600 rounded-md cursor-pointer border-1 hover:bg-blue-700"
-            onClick={connectWallet}
-          >
-            Connect to Rinkeby with MetaMask
-          </button>
-        )}
+        {!currentAccount &&
+          (haveMetaMask ? (
+            <button
+              className="p-2 mt-4 text-white bg-blue-600 rounded-md cursor-pointer border-1 hover:bg-blue-700"
+              onClick={connectWallet}
+            >
+              Connect with MetaMask
+            </button>
+          ) : (
+            <button
+              className="p-2 mt-4 text-white bg-gray-400 rounded-md border-1"
+              disabled={true}
+            >
+              Get MetaMask
+            </button>
+          ))}
+
         <div className="flex flex-col mt-10 text-gray-700">
           <label className="p-1 text-gray-700">Send message</label>
           <input
@@ -224,12 +251,19 @@ function App() {
             placeholder="Send me a message with your punch..."
           ></input>
         </div>
-        <button
-          className="px-2 py-4 mt-4 font-bold text-white bg-orange-600 rounded-lg cursor-pointer border-1 hover:bg-orange-700"
-          onClick={doPunch}
-        >
-          1x Punch! 👊
-        </button>
+        {chainId === "0x4" ? (
+          <button
+            className="px-2 py-4 mt-4 font-bold text-white bg-orange-600 rounded-lg cursor-pointer border-1 hover:bg-orange-700"
+            onClick={doPunch}
+          >
+            1x Punch! 👊
+          </button>
+        ) : (
+          <button className="px-2 py-4 mt-4 font-bold text-white bg-gray-400 rounded-lg cursor-default border-1">
+            Not on Rinkeby Network
+          </button>
+        )}
+
         <div className="mt-5">
           {allPunches.map((punch, index) => {
             return (
