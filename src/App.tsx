@@ -33,11 +33,12 @@ function App() {
           const account = accounts[0];
           console.log("Found an authorized account: ", account);
           setCurrentAccount(account);
-          getCount();
-          getAllPunches();
         } else {
           console.log("No authorized account found");
         }
+
+        getCount();
+        getAllPunches();
       }
     } catch (error) {
       console.log(error);
@@ -138,11 +139,10 @@ function App() {
 
       if (ethereum) {
         const provider = new ethers.providers.Web3Provider(ethereum);
-        const signer = provider.getSigner();
         const contract = new ethers.Contract(
           contractAddress,
           contractABI,
-          signer
+          provider
         );
 
         let count = await contract.getTotalPunches();
@@ -153,6 +153,7 @@ function App() {
         console.log("Ethereum object doesn't exists");
       }
     } catch (error) {
+      console.log("111111");
       console.log(error);
     }
   };
@@ -163,11 +164,10 @@ function App() {
 
       if (ethereum) {
         const provider = new ethers.providers.Web3Provider(ethereum);
-        const signer = provider.getSigner();
         const contract = new ethers.Contract(
           contractAddress,
           contractABI,
-          signer
+          provider
         );
 
         const allPunches = await contract.getAllPunches();
@@ -182,7 +182,7 @@ function App() {
           punchesCleaned.push(curr);
         });
 
-        setAllPunches(punchesCleaned);
+        setAllPunches(punchesCleaned.reverse());
       } else {
         console.log("Ethereum object doesn't exists");
       }
@@ -201,7 +201,6 @@ function App() {
         <div className="mt-4 text-2xl font-semibold text-center">
           👋 Hey there! 👊 Punch Me!
         </div>
-
         <div className="mt-10 text-center text-gray-700">
           I deployed a bug to production, I should be punched!
           <p>I got punched for {punchCount} times so far!</p>
@@ -209,16 +208,14 @@ function App() {
             You might get lucky to receive ETH 😉
           </p>
         </div>
-
         {!currentAccount && (
           <button
             className="p-2 mt-4 text-white bg-blue-600 rounded-md cursor-pointer border-1 hover:bg-blue-700"
             onClick={connectWallet}
           >
-            Connect MetaMask
+            Connect to Rinkeby with MetaMask
           </button>
         )}
-
         <div className="flex flex-col mt-10 text-gray-700">
           <label className="p-1 text-gray-700">Send message</label>
           <input
@@ -227,14 +224,12 @@ function App() {
             placeholder="Send me a message with your punch..."
           ></input>
         </div>
-
         <button
           className="px-2 py-4 mt-4 font-bold text-white bg-orange-600 rounded-lg cursor-pointer border-1 hover:bg-orange-700"
           onClick={doPunch}
         >
           1x Punch! 👊
         </button>
-
         <div className="mt-5">
           {allPunches.map((punch, index) => {
             return (
