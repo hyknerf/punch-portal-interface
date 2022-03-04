@@ -93,8 +93,8 @@ function App() {
 
         contract = new ethers.Contract(contractAddress, contractABI, signer);
         contract.on("NewPunch", onNewPunch);
-
         ethereum.on("chainChanged", chainChanged);
+        ethereum.on("accountsChanged", accountChanged);
       }
     } catch (error) {
       console.log(error);
@@ -120,9 +120,19 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    console.log("chainId", chainId);
-  }, [chainId]);
+  const accountChanged = async () => {
+    try {
+      const { ethereum } = window as any;
+      if (ethereum) {
+        const accounts = await ethereum.request({
+          method: "eth_requestAccounts",
+        });
+        setCurrentAccount(accounts[0]);
+      }
+    } catch (error) {
+      console.log("unable to determine the account");
+    }
+  };
 
   const doPunch = async () => {
     try {
@@ -244,7 +254,9 @@ function App() {
           ))}
 
         {currentAccount && (
-          <div className="mt-2 text-sm font-semibold">Hi, {currentAccount}!</div>
+          <div className="mt-2 text-sm font-semibold">
+            Hi, {currentAccount}!
+          </div>
         )}
 
         <div className="flex flex-col mt-10 text-gray-700">
