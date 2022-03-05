@@ -81,7 +81,7 @@ function App() {
         timestamp: new Date(timestamp * 1000),
         message: message,
       };
-      setAllPunches((prevState) => [...prevState, newPunch]);
+      setAllPunches((prevState) => [newPunch, ...prevState]);
     };
 
     try {
