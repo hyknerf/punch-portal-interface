@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ethers } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import abi from "./utils/PunchContractABI.json";
 
 import "./App.css";
@@ -22,6 +22,7 @@ function App() {
   const [allPunches, setAllPunches] = useState<Punch[]>([]);
   const [haveMetaMask, setHaveMetaMask] = useState<boolean>(false);
   const [chainId, setChainId] = useState<string>("");
+  const [contractBalance, setContractBalance] = useState<BigNumber>(BigNumber.from(0));
 
   const checkIfWalletIsConnected = async () => {
     try {
@@ -44,6 +45,7 @@ function App() {
         }
       }
       getCount();
+      getContractBalance();
       getAllPunches();
     } catch (error) {
       console.log(error);
@@ -157,6 +159,7 @@ function App() {
         count = await contract.getTotalPunches();
         console.log("Retreived total punch count...", count.toNumber());
         getAllPunches();
+        getContractBalance();
         getCount();
       } else {
         console.log("Ethereum object doesn't exists");
@@ -166,13 +169,28 @@ function App() {
     }
   };
 
+  const getContractBalance = async () => {
+    try {
+      const provider = new ethers.providers.AlchemyProvider(
+        network,
+        alchemyApiKey
+      );
+
+      let balance = await provider.getBalance(contractAddress);
+      console.log("Retreived contract balance...", balance);
+      setContractBalance(balance);
+    } catch (error) {
+      console.log("failed to fetch contract balance");
+      console.trace(error)
+    }
+  };
+
   const getCount = async () => {
     try {
       const provider = new ethers.providers.AlchemyProvider(
         network,
         alchemyApiKey
       );
-      // const provider = new ethers.providers.Web3Provider(ethereum);
       const contract = new ethers.Contract(
         contractAddress,
         contractABI,
@@ -232,8 +250,8 @@ function App() {
         <div className="mt-10 text-center text-gray-700">
           I deployed a bug to production, I should be punched!
           <p>I got punched for {punchCount} times so far!</p>
-          <p className="mt-2 text-sm font-semibold">
-            You might get lucky to receive ETH 😉
+          <p className="flex justify-center mt-2 text-sm font-semibold">
+            You might get lucky to receive <div className="px-1 mx-1 text-white bg-red-500 rounded py-1/2"> {ethers.utils.formatUnits(contractBalance, "ether")} </div> ETH 😉
           </p>
         </div>
         {!currentAccount &&
